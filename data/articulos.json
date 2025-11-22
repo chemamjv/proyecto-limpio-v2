@@ -1,0 +1,18 @@
+ [
+  {
+    "id": 101,
+    "titulo": "Aprender Next.js es Genial",
+    "fecha": "2025-11-21",
+    "extracto": "Descubre por qué Next.js, con su routing y optimización, es la mejor opción para aplicaciones web modernas.",
+    "autor": "Chema",
+    "contenido": "Next.js es un framework de React que te permite construir aplicaciones web de alto rendimiento. Ofrece características como el pre-renderizado estático y server-side rendering, mejorando la SEO y la velocidad de carga de tu sitio web."
+  },
+  {
+    "id": 102,
+    "titulo": "Dominando Git y Vercel",
+    "fecha": "2025-11-20",
+    "extracto": "Una guía paso a paso sobre el flujo de trabajo Git y cómo desplegar aplicaciones de forma continua con Vercel.",
+    "autor": "Chema",
+    "contenido": "El flujo de trabajo con Git es esencial en el desarrollo moderno. Al usar comandos como 'git commit' y 'git push', puedes llevar tus cambios directamente a Vercel, que se encarga de compilar y desplegar tu aplicación en minutos de forma automática."
+  }
+]
