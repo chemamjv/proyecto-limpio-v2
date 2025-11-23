@@ -102,8 +102,8 @@ export default function Home() {
   const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
   
   // ESTADOS AVANZADOS
-  const [mapBounds, setMapBounds] = useState<google.maps.LatLngBounds | null>(null); // Para enfocar el mapa dinámicamente
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null); // Índice de la etapa seleccionada
+  const [mapBounds, setMapBounds] = useState<google.maps.LatLngBounds | null>(null); 
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null); 
   
   const [formData, setFormData] = useState({
     fechaInicio: '',
@@ -126,16 +126,14 @@ export default function Home() {
 
   // --- EFECTO: CENTRAR EL MAPA DINÁMICAMENTE ---
   React.useEffect(() => {
-      // 🛑 Chequeo de seguridad: No ejecutar si el mapa o los bounds no están listos.
       if (map && mapBounds) {
-          // Aplicar los bounds (el zoom) con un pequeño delay
           setTimeout(() => map.fitBounds(mapBounds), 500); 
       }
   }, [map, mapBounds]);
   
+
   // --- FUNCIÓN ASÍNCRONA PARA OBTENER COORDENADAS DE UNA CIUDAD ---
   const geocodeCity = async (cityName: string): Promise<google.maps.LatLngLiteral | null> => {
-    // 🛑 CHEQUEO CRÍTICO: Evitar que el servidor intente usar Geocoder
     if (typeof google === 'undefined' || typeof google.maps.Geocoder === 'undefined') return null; 
     
     const geocoder = new google.maps.Geocoder();
@@ -153,7 +151,6 @@ export default function Home() {
 
   // --- FUNCIÓN CLAVE: ENFOCAR MAPA EN UNA ETAPA (Llamada al hacer click en la pestaña) ---
   const focusMapOnStage = async (dayIndex: number) => {
-    // 🛑 CHEQUEO CRÍTICO
     if (typeof google === 'undefined' || !results.dailyItinerary) return; 
 
     const dailyPlan = results.dailyItinerary![dayIndex];
@@ -166,12 +163,12 @@ export default function Home() {
     ]);
 
     if (startCoord && endCoord) {
-      // 2. Crear el objeto Bounds (lo que engloba la vista)
+      // 2. Crear el objeto Bounds para englobar ambas ciudades y hacer zoom
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(startCoord);
       bounds.extend(endCoord);
       
-      setMapBounds(bounds); // Activar el useEffect para que centre el mapa
+      setMapBounds(bounds); 
     }
     
     // 3. Activar la pestaña
@@ -190,7 +187,6 @@ export default function Home() {
   
   // --- LÓGICA GEOCODING Y CÁLCULO ---
   const getCityNameForStop = async (lat: number, lng: number): Promise<string> => {
-    // 🛑 CHEQUEO CRÍTICO: Blindar contra el servidor
     if (typeof google === 'undefined' || typeof google.maps.Geocoder === 'undefined') return "Parada en Ruta"; 
     
     const geocoder = new google.maps.Geocoder();
@@ -230,7 +226,7 @@ export default function Home() {
 
       setDirectionsResponse(result);
 
-      // --- ALGORITMO CORE: TRAMO A TRAMO (OMITIDO POR BREVEDAD, ES IDÉNTICO) ---
+      // --- ALGORITMO CORE: TRAMO A TRAMO CON FIX DE DÍAS ---
       const route = result.routes[0];
       const itinerary: DailyPlan[] = [];
       const newTacticalMarkers: {lat: number, lng: number, title: string}[] = [];
@@ -301,6 +297,12 @@ export default function Home() {
                 isDriving: true
             });
             currentLegStartName = endLegName;
+            
+            // 🛑 FIX CRÍTICO: Forzar salto de día al llegar a un Waypoint definido por el usuario (fin de Leg)
+            if (i < route.legs.length - 1) { 
+               dayCounter++; 
+               currentDate = addDay(currentDate); 
+            }
         }
         totalDistMeters += leg.distance?.value || 0;
       }
@@ -471,7 +473,7 @@ export default function Home() {
                             <button
                                 onClick={() => {
                                     setSelectedDayIndex(null);
-                                    setMapBounds(null); // Limpiar bounds para volver al zoom completo
+                                    setMapBounds(null); 
                                 }}
                                 className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
                                     selectedDayIndex === null 
@@ -486,7 +488,6 @@ export default function Home() {
                             {results.dailyItinerary?.map((day, index) => (
                                 <button
                                     key={index}
-                                    // 🛑 LLAMADA A LA FUNCIÓN AVANZADA DE ENFOQUE
                                     onClick={() => focusMapOnStage(index)} 
                                     className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
                                         selectedDayIndex === index 
@@ -514,7 +515,6 @@ export default function Home() {
                                     if (mapBounds) map.fitBounds(mapBounds);
                                 }}
                             >
-                                {/* La ruta se renderiza completa, el enfoque visual es el que cambia */}
                                 {directionsResponse && <DirectionsRenderer directions={directionsResponse} options={{ 
                                     suppressMarkers: false, 
                                     polylineOptions: { 
@@ -522,45 +522,4 @@ export default function Home() {
                                         strokeWeight: 5 
                                     } 
                                 }} />}
-                                {tacticalMarkers.map((marker, i) => (
-                                    <Marker 
-                                        key={i} 
-                                        position={marker} 
-                                        label={{text: "P", color: "white", fontWeight: "bold"}} 
-                                        title={marker.title} 
-                                    />
-                                ))}
-                            </GoogleMap>
-                        </div>
-
-                        {/* RESUMEN DEL DÍA SELECCIONADO / GENERAL */}
-                        <div className="lg:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-[500px]">
-                            <div className='p-6 h-full'>
-                                {selectedDayIndex === null ? (
-                                    // --- VISTA GENERAL (RESUMEN) ---
-                                    <div className="text-center pt-8">
-                                        <h4 className="text-2xl font-extrabold text-blue-700 mb-2">Itinerario Completo</h4>
-                                        <p className="text-gray-500">
-                                            Haz clic en la pestaña de un **Día** (ej: Día 2) para enfocar el mapa y ver la parada de pernocta.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    // --- VISTA DE DÍA DETALLADA (Llama al componente) ---
-                                    <DayDetailView day={results.dailyItinerary![selectedDayIndex]} />
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-        
-        {results.error && (
-            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center justify-center font-bold">
-                ⚠️ {results.error}
-            </div>
-        )}
-      </div>
-    </main>
-  );
-}
+                                {tacticalMarkers.map((marker, i) =>
