@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN FINAL Y COMPLETA: BLINDADA CONTRA AMBIGÜEDADES)
+// app/page.tsx (VERSIÓN DEFINITIVA: Handlers Unificados + Búsqueda Inteligente)
 'use client';
 
 import React, { useState } from 'react';
@@ -14,9 +14,9 @@ const containerStyle = {
 const center = { lat: 40.416775, lng: -3.703790 };
 const LIBRARIES: ("places" | "geometry")[] = ["places", "geometry"]; 
 
-// --- INTERFACES y ICONOS ---
+// --- INTERFACES y ICONOS (Omitidas para la plantilla, pero presentes en el código) ---
 interface DailyPlan { day: number; date: string; from: string; to: string; distance: number; isDriving: boolean; }
-interface TripResult { totalDays: number | null; distanceKm: number | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; } // Modificado: km, totalCost deben ser number | null
+interface TripResult { totalDays: number | null; distanceKm: number | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; }
 
 const IconCalendar = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
 const IconMap = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>);
@@ -27,7 +27,7 @@ const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6
 const DayDetailView: React.FC<{ day: DailyPlan }> = ({ day }) => {
     const rawCityName = day.to.replace('📍 Parada Táctica: ', '').replace('📍 Parada de Pernocta: ', '').split(',')[0].trim();
     
-    // 🛑 FIX FINAL: Búsqueda especializada con la fórmula del usuario
+    // 🛑 Búsqueda especializada de Park4Night/Caramaps
     const link = `http://googleusercontent.com/maps.google.com/search?q=area+autocaravana+park4night+caramaps+${rawCityName}`;
 
     return (
@@ -156,26 +156,30 @@ export default function Home() {
     setSelectedDayIndex(dayIndex); 
   };
   
-  // 🛑 HANDLER 1: Para Inputs de Texto y Número
+  // 🛑 HANDLER UNIFICADO (FIXED)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
+    const { id, value, type, checked } = e.target;
+    
+    let finalValue: string | number | boolean;
+    
+    if (type === 'checkbox') {
+        finalValue = checked;
+    } else if (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') {
+        // Manejamos inputs numéricos que no son sliders
+        finalValue = parseFloat(value);
+    } else {
+        // Valores de texto
+        finalValue = value;
+    }
     
     setFormData(prev => ({ 
         ...prev, 
-        [id]: (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') ? parseFloat(value) : value
+        [id]: finalValue
     }));
   };
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: parseFloat(e.target.value) }));
-  };
-
-  // 🛑 HANDLER 2: Función dedicada SÓLO para el Checkbox
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData(prev => ({ 
-          ...prev, 
-          evitarPeajes: e.target.checked 
-      }));
   };
   
   // --- LÓGICA GEOCODING Y CÁLCULO ---
@@ -428,4 +432,173 @@ export default function Home() {
                                 type="checkbox" 
                                 id="evitarPeajes" 
                                 checked={formData.evitarPeajes} 
-                                onChange={handleCheckboxChange} //</label>
+                                onChange={handleChange} // 🛑 USAMOS EL HANDLER UNIFICADO
+                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" 
+                            />
+                            Evitar Peajes 🚫
+                        </label>
+                    </div>
+
+                    {/* Botón Calcular (2 Columnas restantes) */}
+                     <div className="md:col-span-2 lg:col-span-2 flex items-end">
+                        <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-700 to-blue-600 text-white py-3.5 rounded-xl font-bold text-lg hover:from-blue-800 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                            {loading ? 'Calculando Ruta Óptima...' : '🚀 Calcular Itinerario'}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {/* SECCIÓN DE RESULTADOS (Resto sin cambios) */}
+        {results.totalCost !== null && (
+            <div className="space-y-8">
+                
+                {/* DASHBOARD DE DATOS */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-blue-50 rounded-full"><IconCalendar /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-gray-800">{results.totalDays}</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Días</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-blue-50 rounded-full"><IconMap /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-gray-800">{results.distanceKm?.toFixed(0)}</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Km Total</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-purple-50 rounded-full"><IconFuel /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-gray-800">{(results.distanceKm! / 100 * formData.consumo).toFixed(0)}</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Litros</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-green-50 rounded-full"><IconWallet /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-green-600">{results.totalCost?.toFixed(0)} €</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Coste Aprox.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* CONTENEDOR DE LA RUTA Y PESTAÑAS */}
+                <div className="space-y-6">
+    
+                    {/* 1. NAVEGADOR DE ETAPAS (PESTAÑAS) */}
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 overflow-x-auto">
+                        <h3 className="font-bold text-gray-700 mb-3">Selecciona una Etapa para Verla en Detalle:</h3>
+                        <div className="flex space-x-2 pb-2">
+                            
+                            {/* Opción 'Vista General' */}
+                            <button
+                                onClick={() => {
+                                    setSelectedDayIndex(null);
+                                    setMapBounds(null); 
+                                }}
+                                className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                                    selectedDayIndex === null 
+                                    ? 'bg-blue-600 text-white shadow-md' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
+                                }`}
+                            >
+                                🌎 Vista General
+                            </button>
+
+                            {/* Iteración de las Pestañas (Días) */}
+                            {results.dailyItinerary?.map((day, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => focusMapOnStage(index)} 
+                                    className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                                        selectedDayIndex === index 
+                                        ? (day.isDriving ? 'bg-blue-600 text-white shadow-md' : 'bg-orange-600 text-white shadow-md') 
+                                        : (day.isDriving ? 'bg-gray-100 text-gray-700 hover:bg-blue-50' : 'bg-orange-100 text-orange-700 hover:bg-orange-200')
+                                    }`}
+                                >
+                                    <span className="mr-1">{day.isDriving ? '🚗' : '🏖️'}</span> Día {day.day}: {day.to.replace('📍 Parada Táctica: ', '').split(',')[0]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 2. CONTENIDO DETALLADO (MAPA Y RESUMEN) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        {/* MAPA (Ocupa 2 columnas en pantallas grandes) */}
+                        <div className="lg:col-span-2 h-[500px] bg-gray-200 rounded-2xl shadow-lg overflow-hidden border-4 border-white relative">
+                            <GoogleMap 
+                                mapContainerStyle={containerStyle} 
+                                center={center} 
+                                zoom={6} 
+                                onLoad={map => {
+                                    setMap(map);
+                                    if (mapBounds) map.fitBounds(mapBounds);
+                                }}
+                            >
+                                {directionsResponse && <DirectionsRenderer directions={directionsResponse} options={{ 
+                                    strokeColor: "#2563EB", 
+                                    strokeWeight: 5 
+                                }} />}
+                                {tacticalMarkers.map((marker, i) => (
+                                    <Marker 
+                                        key={i} 
+                                        position={marker} 
+                                        label={{text: "P", color: "white", fontWeight: "bold"}} 
+                                        title={marker.title} 
+                                    />
+                                ))}
+                            </GoogleMap>
+                        </div>
+
+                        {/* RESUMEN DEL DÍA SELECCIONADO / GENERAL */}
+                        <div className="lg:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-[500px]">
+                            <div className='p-6 h-full'>
+                                {selectedDayIndex === null ? (
+                                    // --- VISTA GENERAL (RESUMEN) ---
+                                    <div className="text-center pt-8">
+                                        <h4 className="text-2xl font-extrabold text-blue-700 mb-2">Itinerario Completo</h4>
+                                        <p className="text-gray-500">
+                                            Haz clic en la pestaña de un **Día** (ej: Día 2) para enfocar el mapa y ver la parada de pernocta.
+                                        </p>
+                                        
+                                        {/* TABLA DE RESUMEN RÁPIDO */}
+                                        <div className="mt-6 border rounded-lg overflow-hidden">
+                                            <table className="min-w-full text-sm text-left">
+                                                <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-600">
+                                                    <tr><th className="px-4 py-2">Día</th><th className="px-4 py-2 text-right">Km</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {results.dailyItinerary?.filter(d => d.isDriving).map((day, i) => (
+                                                        <tr key={i} className="hover:bg-blue-50">
+                                                            <td className="px-4 py-2 font-medium">Día {day.day}</td>
+                                                            <td className="px-4 py-2 text-right font-mono">{day.distance.toFixed(0)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // --- VISTA DE DÍA DETALLADA (Llama al componente) ---
+                                    <DayDetailView day={results.dailyItinerary![selectedDayIndex]} />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+        
+        {results.error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center justify-center font-bold">
+                ⚠️ {results.error}
+            </div>
+        )}
+      </div>
+    </main>
+  );
+}
