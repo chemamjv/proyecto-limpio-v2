@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN FINAL Y BLINDADA CONTRA ERRORES DE BUILD)
+// app/page.tsx (VERSIÓN FINAL Y BLINDADA CON CHEQUEOS EXPLÍCITOS DE SEGURIDAD)
 'use client';
 
 import React, { useState } from 'react';
@@ -14,35 +14,15 @@ const containerStyle = {
 const center = { lat: 40.416775, lng: -3.703790 };
 const LIBRARIES: ("places" | "geometry")[] = ["places", "geometry"]; 
 
-// --- INTERFACES y ICONOS (Sin cambios) ---
-interface DailyPlan {
-  day: number;
-  date: string;
-  from: string;
-  to: string;
-  distance: number;
-  isDriving: boolean;
-}
+// --- INTERFACES y ICONOS (Omitidas para la plantilla, pero presentes en el código) ---
+interface DailyPlan { day: number; date: string; from: string; to: string; distance: number; isDriving: boolean; }
+interface TripResult { totalDays: number | null; distanceKm: number | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; }
 
-interface TripResult {
-  totalDays: number | null;
-  distanceKm: number | null;
-  totalCost: number | null;
-  dailyItinerary: DailyPlan[] | null;
-  error: string | null;
-}
-
-const IconCalendar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+const IconCalendar = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
+const IconMap = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>);
+const IconFuel = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
 );
-const IconMap = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>
-);
-const IconFuel = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-);
-const IconWallet = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 );
 
 // --- COMPONENTE DE VISTA DETALLADA DEL DÍA ---
@@ -132,8 +112,9 @@ export default function Home() {
   }, [map, mapBounds]);
   
 
-  // --- FUNCIÓN ASÍNCRONA PARA OBTENER COORDENADAS DE UNA CIUDAD ---
+  // --- FUNCIÓN ASÍNCRONA PARA OBTENER COORDENADAS DE UNA CIUDAD (BLINDADA) ---
   const geocodeCity = async (cityName: string): Promise<google.maps.LatLngLiteral | null> => {
+    // 🛑 CHEQUEO CRÍTICO: Asegurar que el objeto existe antes de inicializarlo
     if (typeof google === 'undefined' || typeof google.maps.Geocoder === 'undefined') return null; 
     
     const geocoder = new google.maps.Geocoder();
@@ -149,9 +130,10 @@ export default function Home() {
   };
 
 
-  // --- FUNCIÓN CLAVE: ENFOCAR MAPA EN UNA ETAPA (Llamada al hacer click en la pestaña) ---
+  // --- FUNCIÓN CLAVE: ENFOCAR MAPA EN UNA ETAPA (BLINDADA) ---
   const focusMapOnStage = async (dayIndex: number) => {
-    if (typeof google === 'undefined' || !results.dailyItinerary) return; 
+    // 🛑 CHEQUEO CRÍTICO: Asegurar que el objeto existe
+    if (typeof google === 'undefined' || !results.dailyItinerary || typeof google.maps.LatLngBounds === 'undefined') return; 
 
     const dailyPlan = results.dailyItinerary![dayIndex];
     if (!dailyPlan) return;
@@ -168,7 +150,7 @@ export default function Home() {
       bounds.extend(startCoord);
       bounds.extend(endCoord);
       
-      setMapBounds(bounds); 
+      setMapBounds(bounds); // Activar el useEffect para que centre el mapa
     }
     
     // 3. Activar la pestaña
@@ -212,6 +194,13 @@ export default function Home() {
     setSelectedDayIndex(null); 
     setMapBounds(null); 
 
+    // 🛑 Chequeo defensivo antes de usar DirectionsService
+    if (typeof google === 'undefined' || typeof google.maps.DirectionsService === 'undefined') {
+        setLoading(false);
+        setResults(prev => ({...prev, error: "El script de Google Maps no se cargó correctamente."}));
+        return;
+    }
+    
     const directionsService = new google.maps.DirectionsService();
     const waypoints = formData.etapas.split(',').map(s => s.trim()).filter(s => s.length > 0)
       .map(location => ({ location, stopover: true }));
@@ -298,7 +287,7 @@ export default function Home() {
             });
             currentLegStartName = endLegName;
             
-            // 🛑 FIX CRÍTICO: Forzar salto de día al llegar a un Waypoint definido por el usuario (fin de Leg)
+            // FIX CRÍTICO: Forzar salto de día al llegar a un Waypoint definido por el usuario (fin de Leg)
             if (i < route.legs.length - 1) { 
                dayCounter++; 
                currentDate = addDay(currentDate); 
@@ -522,4 +511,62 @@ export default function Home() {
                                         strokeWeight: 5 
                                     } 
                                 }} />}
-                                {tacticalMarkers.map((marker, i) =>
+                                {tacticalMarkers.map((marker, i) => (
+                                    <Marker 
+                                        key={i} 
+                                        position={marker} 
+                                        label={{text: "P", color: "white", fontWeight: "bold"}} 
+                                        title={marker.title} 
+                                    />
+                                ))}
+                            </GoogleMap>
+                        </div>
+
+                        {/* RESUMEN DEL DÍA SELECCIONADO / GENERAL */}
+                        <div className="lg:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-[500px]">
+                            <div className='p-6 h-full'>
+                                {selectedDayIndex === null ? (
+                                    // --- VISTA GENERAL (RESUMEN) ---
+                                    <div className="text-center pt-8">
+                                        <h4 className="text-2xl font-extrabold text-blue-700 mb-2">Itinerario Completo</h4>
+                                        <p className="text-gray-500">
+                                            Haz clic en la pestaña de un **Día** (ej: Día 2) para enfocar el mapa y ver la parada de pernocta.
+                                        </p>
+                                        
+                                        {/* TABLA DE RESUMEN RÁPIDO */}
+                                        <div className="mt-6 border rounded-lg overflow-hidden">
+                                            <table className="min-w-full text-sm text-left">
+                                                <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-600">
+                                                    <tr><th className="px-4 py-2">Día</th><th className="px-4 py-2 text-right">Km</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {results.dailyItinerary?.filter(d => d.isDriving).map((day, i) => (
+                                                        <tr key={i} className="hover:bg-blue-50">
+                                                            <td className="px-4 py-2 font-medium">Día {day.day}</td>
+                                                            <td className="px-4 py-2 text-right font-mono">{day.distance.toFixed(0)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // --- VISTA DE DÍA DETALLADA (Llama al componente) ---
+                                    <DayDetailView day={results.dailyItinerary![selectedDayIndex]} />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+        
+        {results.error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center justify-center font-bold">
+                ⚠️ {results.error}
+            </div>
+        )}
+      </div>
+    </main>
+  );
+}
