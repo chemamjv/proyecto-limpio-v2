@@ -1,7 +1,7 @@
-// app/page.tsx (VERSIÓN CLIENT-SIDE CON GOOGLE MAPS JAVASCRIPT API)
+// app/page.tsx (CORRECCIÓN VISUAL Y LÓGICA DE NOMBRES)
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-google-maps/api';
 
 // --- CONFIGURACIÓN DEL MAPA ---
@@ -12,11 +12,11 @@ const containerStyle = {
 };
 
 const center = {
-  lat: 40.416775, // Madrid (centro por defecto)
+  lat: 40.416775, 
   lng: -3.703790
 };
 
-const LIBRARIES: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
+const LIBRARIES: ("places" | "geometry")[] = ["places", "geometry"];
 
 // --- INTERFACES ---
 interface DailyPlan {
@@ -26,7 +26,6 @@ interface DailyPlan {
   to: string;
   distance: number;
   isDriving: boolean;
-  warning?: string;
 }
 
 interface TripResult {
@@ -38,7 +37,7 @@ interface TripResult {
 }
 
 export default function Home() {
-  // 1. CARGA DEL SCRIPT DE GOOGLE MAPS
+  // 1. CARGA DEL SCRIPT
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -80,22 +79,18 @@ export default function Home() {
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    const val = parseFloat(value);
-    setFormData(prev => ({ ...prev, [id]: val }));
-    const display = document.getElementById(`${id}-value`);
-    if(display) display.textContent = id === 'consumo' ? val.toFixed(1) : val.toFixed(0);
+    setFormData(prev => ({ ...prev, [id]: parseFloat(value) }));
   };
 
-  // --- LÓGICA PRINCIPAL DE CÁLCULO (CLIENT SIDE) ---
+  // --- LÓGICA DE CÁLCULO ---
   const calculateRoute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLoaded) return;
 
     setLoading(true);
     setResults(prev => ({...prev, error: null, dailyItinerary: null}));
-    setTacticalMarkers([]); // Limpiar marcadores anteriores
+    setTacticalMarkers([]); 
 
-    // Servicio de Direcciones de Google (Client Side)
     const directionsService = new google.maps.DirectionsService();
 
     const waypoints = formData.etapas.split(',')
@@ -111,9 +106,9 @@ export default function Home() {
         travelMode: google.maps.TravelMode.DRIVING,
       });
 
-      setDirectionsResponse(result); // Esto dibuja la línea azul automáticamente
+      setDirectionsResponse(result); 
 
-      // --- PROCESAMIENTO DE DATOS ---
+      // PROCESAMIENTO
       const route = result.routes[0];
       let totalDistMeters = 0;
       const itinerary: DailyPlan[] = [];
@@ -123,65 +118,50 @@ export default function Home() {
       let dayCounter = 1;
       const maxMeters = formData.kmMaximoDia * 1000;
 
-      // Helper para formatear fecha
       const formatDate = (d: Date) => d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
       const addDay = (d: Date) => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; };
 
-      // Recorremos los LEGS (Tramos entre waypoints de usuario)
-      // Ejemplo: Salamanca -> Valencia (Leg 0), Valencia -> Punta Umbria (Leg 1)
-      
-      // Lista completa de paradas (Usuario + Tácticas)
-      // Empezamos en el origen
       let currentStopName = formData.origen; 
 
       for (const leg of route.legs) {
+        // Corrección: Acumular la distancia total correctamente
         totalDistMeters += leg.distance?.value || 0;
         
-        // Algoritmo de división por pasos (steps)
         let legAccumulator = 0;
         let segmentStartName = currentStopName;
 
         for (const step of leg.steps) {
             const stepDist = step.distance?.value || 0;
             
-            // Si sumando este paso nos pasamos del límite...
+            // Lógica de División
             if (legAccumulator + stepDist > maxMeters) {
-                // ... Marcamos una PARADA TÁCTICA aquí.
+                // EXTRACCIÓN DE NOMBRE ROBUSTA (Para que no salga vacío)
+                let addressStr = step.end_address || "Punto en Ruta";
+                // Quitamos el país si aparece al final
+                addressStr = addressStr.replace(", España", "");
+                let parts = addressStr.split(",");
                 
-                // 1. Obtener nombre limpio
-                // Google suele dar "Calle Falsa 123, Ciudad, País". Queremos "Ciudad".
-                let addressParts = (step.end_address || "").split(',');
-                // Intentamos coger la penúltima parte (suele ser ciudad) o la primera si es corta
-                let cleanName = addressParts.length > 1 
-                    ? addressParts[addressParts.length - 2].trim() // Penúltimo elemento
-                    : addressParts[0].trim();
-                
-                // Quitamos códigos postales si se cuelan (ej: "46000 Valencia")
-                cleanName = cleanName.replace(/^[0-9]{4,5}\s*/, '');
+                // Intentamos coger el elemento más representativo
+                let cleanName = parts.length > 1 ? parts[parts.length - 1].trim() : parts[0].trim();
+                // Limpieza de códigos postales
+                cleanName = cleanName.replace(/^\d{5}\s*/, '').replace(/\s*\d{5}$/, '');
 
                 const tacticalStopName = `📍 Parada Táctica: ${cleanName}`;
 
-                // 2. Guardar Marcador para el Mapa
                 const stepLat = step.end_location.lat();
                 const stepLng = step.end_location.lng();
-                newTacticalMarkers.push({
-                    lat: stepLat, 
-                    lng: stepLng, 
-                    title: tacticalStopName
-                });
+                newTacticalMarkers.push({ lat: stepLat, lng: stepLng, title: tacticalStopName });
 
-                // 3. Añadir al Itinerario
-                const distKm = (legAccumulator + stepDist) / 1000;
+                // Añadir etapa
                 itinerary.push({
                     day: dayCounter,
                     date: formatDate(currentDate),
                     from: segmentStartName,
                     to: tacticalStopName,
-                    distance: distKm,
+                    distance: (legAccumulator + stepDist) / 1000,
                     isDriving: true
                 });
 
-                // 4. Resetear contadores para el día siguiente
                 dayCounter++;
                 currentDate = addDay(currentDate);
                 legAccumulator = 0; 
@@ -192,9 +172,9 @@ export default function Home() {
             }
         }
 
-        // Al terminar el Leg, añadimos el tramo restante hasta el destino del Leg (ej: Valencia)
+        // Final del Leg
         const endLegName = leg.end_address ? leg.end_address.split(',')[0] : "Destino Intermedio";
-        currentStopName = endLegName; // Actualizamos para el siguiente leg
+        currentStopName = endLegName; 
 
         if (legAccumulator > 0) {
              itinerary.push({
@@ -210,8 +190,8 @@ export default function Home() {
         }
       }
 
-      // --- CÁLCULO DE ESTANCIA ---
-      const arrivalDate = addDay(currentDate); // Día siguiente a la llegada
+      // Estancia
+      const arrivalDate = new Date(currentDate); 
       const returnDateObj = new Date(formData.fechaRegreso);
       const diffTime = returnDateObj.getTime() - arrivalDate.getTime();
       const stayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -232,12 +212,11 @@ export default function Home() {
         }
       }
 
-      // --- RESULTADOS FINALES ---
+      // Totales
       const totalKm = totalDistMeters / 1000;
       const liters = (totalKm / 100) * formData.consumo;
       const cost = liters * formData.precioGasoil;
 
-      // Actualizamos estado de marcadores y resultados
       setTacticalMarkers(newTacticalMarkers);
       setResults({
         totalDays: dayCounter - 1,
@@ -248,53 +227,67 @@ export default function Home() {
       });
 
     } catch (error: any) {
-      console.error(error);
-      setResults(prev => ({...prev, error: "No se pudo calcular la ruta. Verifica las ciudades."}));
+      console.error("Error ruta:", error);
+      setResults(prev => ({...prev, error: "Error al calcular. Revisa las ciudades."}));
     } finally {
       setLoading(false);
     }
   };
 
-  // --- RENDERIZADO ---
-  if (!isLoaded) return <div className="flex justify-center items-center h-screen">Cargando Mapa...</div>;
+  if (!isLoaded) return <div className="flex justify-center items-center h-screen text-black">Cargando Mapa...</div>;
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
+    <main className="min-h-screen bg-gray-50 flex flex-col items-center p-8 text-gray-900">
       <div className="w-full max-w-4xl bg-white shadow-xl rounded-lg p-8">
         <h1 className="text-4xl font-extrabold text-blue-800 mb-6 border-b pb-2">🚐 Planificador de Ruta Camper 🗺️</h1>
         
         <form onSubmit={calculateRoute}>
             <section className="bg-blue-50 p-6 rounded-md border border-blue-200">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-6">
-                    {/* Inputs de Fecha */}
-                    <div className="md:col-span-2"><label>📅 Inicio</label><input type="date" id="fechaInicio" onChange={handleChange} className="w-full p-2 border rounded" required/></div>
-                    <div className="md:col-span-2"><label>🗓️ Regreso</label><input type="date" id="fechaRegreso" onChange={handleChange} className="w-full p-2 border rounded" required/></div>
+                    {/* Inputs con TEXT-BLACK forzado */}
+                    <div className="md:col-span-2">
+                        <label className="text-gray-700 font-semibold">📅 Inicio</label>
+                        <input type="date" id="fechaInicio" onChange={handleChange} className="w-full p-2 border rounded text-black" required/>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="text-gray-700 font-semibold">🗓️ Regreso</label>
+                        <input type="date" id="fechaRegreso" onChange={handleChange} className="w-full p-2 border rounded text-black" required/>
+                    </div>
                     
-                    {/* Inputs de Ruta */}
-                    <div className="md:col-span-2"><label>📍 Origen</label><input type="text" id="origen" value={formData.origen} onChange={handleChange} className="w-full p-2 border rounded" required/></div>
-                    <div className="md:col-span-2"><label>🏁 Destino</label><input type="text" id="destino" value={formData.destino} onChange={handleChange} className="w-full p-2 border rounded" required/></div>
+                    <div className="md:col-span-2">
+                        <label className="text-gray-700 font-semibold">📍 Origen</label>
+                        <input type="text" id="origen" value={formData.origen} onChange={handleChange} className="w-full p-2 border rounded text-black" required/>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="text-gray-700 font-semibold">🏁 Destino</label>
+                        <input type="text" id="destino" value={formData.destino} onChange={handleChange} className="w-full p-2 border rounded text-black" required/>
+                    </div>
                     
-                    {/* Waypoints */}
                     <div className="md:col-span-4">
                         <label className="flex items-center gap-2 cursor-pointer text-blue-700 font-bold">
                             <input type="checkbox" checked={showWaypoints} onChange={() => setShowWaypoints(!showWaypoints)} /> ➕ Paradas Intermedias
                         </label>
-                        {showWaypoints && <input type="text" id="etapas" value={formData.etapas} onChange={handleChange} placeholder="Ej: Valencia" className="w-full p-2 border rounded mt-2"/>}
+                        {showWaypoints && (
+                            <input type="text" id="etapas" value={formData.etapas} onChange={handleChange} placeholder="Ej: Valencia" className="w-full p-2 border rounded mt-2 text-black"/>
+                        )}
                     </div>
 
-                    {/* Sliders */}
+                    {/* Sliders con valores visibles */}
                     <div className="md:col-span-2">
-                        <label>🛣️ Max KM/Día: <span id="kmMaximoDia-value" className="font-bold text-blue-600">{formData.kmMaximoDia}</span></label>
+                        <label className="text-gray-700 font-semibold">🛣️ Max KM/Día: <span className="font-bold text-blue-600">{formData.kmMaximoDia}</span></label>
                         <input type="range" id="kmMaximoDia" min="100" max="800" step="50" defaultValue={formData.kmMaximoDia} onChange={handleSliderChange} className="w-full"/>
                     </div>
                     <div className="md:col-span-2">
-                        <label>⛽ Consumo: <span id="consumo-value" className="font-bold text-blue-600">{formData.consumo}</span></label>
+                        <label className="text-gray-700 font-semibold">⛽ Consumo: <span id="consumo-value" className="font-bold text-blue-600">{formData.consumo}</span></label>
                         <input type="range" id="consumo" min="5" max="20" step="0.5" defaultValue={formData.consumo} onChange={handleSliderChange} className="w-full"/>
                     </div>
-                    <div className="md:col-span-2"><label>💶 Precio Gasoil</label><input type="number" id="precioGasoil" value={formData.precioGasoil} onChange={handleChange} className="w-full p-2 border rounded"/></div>
+                    <div className="md:col-span-2">
+                        <label className="text-gray-700 font-semibold">💶 Precio Gasoil</label>
+                        <input type="number" id="precioGasoil" value={formData.precioGasoil} onChange={handleChange} className="w-full p-2 border rounded text-black"/>
+                    </div>
                 </div>
-                <button type="submit" disabled={loading} className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400">
-                    {loading ? 'Calculando...' : 'Generar Plan de Viaje'}
+                <button type="submit" disabled={loading} className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 transition">
+                    {loading ? 'Calculando...' : 'Generar Plan de Viaje 🚀'}
                 </button>
             </section>
         </form>
@@ -302,43 +295,56 @@ export default function Home() {
         {/* RESULTADOS Y MAPA */}
         {results.totalCost !== null && (
             <section className="mt-8 space-y-6">
-                {/* Resumen */}
+                {/* Resumen - Texto Forzado a NEGRO */}
                 <div className="grid grid-cols-4 gap-4 text-center">
-                    <div className="bg-gray-100 p-3 rounded"><strong>{results.totalDays}</strong> días</div>
-                    <div className="bg-gray-100 p-3 rounded"><strong>{results.distanceKm?.toFixed(0)}</strong> km</div>
-                    <div className="bg-gray-100 p-3 rounded"><strong>{results.totalCost?.toFixed(2)}</strong> €</div>
+                    <div className="bg-gray-100 p-3 rounded shadow-sm">
+                        <p className="text-2xl font-bold text-gray-800">{results.totalDays}</p>
+                        <p className="text-sm text-gray-600">Días</p>
+                    </div>
+                    <div className="bg-gray-100 p-3 rounded shadow-sm">
+                        <p className="text-2xl font-bold text-gray-800">{results.distanceKm?.toFixed(0)}</p>
+                        <p className="text-sm text-gray-600">Km Total</p>
+                    </div>
+                    <div className="bg-gray-100 p-3 rounded shadow-sm">
+                        <p className="text-2xl font-bold text-gray-800">{(results.distanceKm! / 100 * formData.consumo).toFixed(0)}</p>
+                        <p className="text-sm text-gray-600">Litros</p>
+                    </div>
+                    <div className="bg-gray-100 p-3 rounded shadow-sm">
+                        <p className="text-2xl font-bold text-red-600">{results.totalCost?.toFixed(0)} €</p>
+                        <p className="text-sm text-gray-600">Coste</p>
+                    </div>
                 </div>
 
-                {/* EL MAPA INTERACTIVO */}
-                <div className="border-2 border-blue-200 rounded-lg overflow-hidden">
+                <div className="border-4 border-blue-100 rounded-lg overflow-hidden shadow-lg">
                     <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={6} onLoad={map => setMap(map)}>
-                        {/* Dibuja la ruta azul */}
                         {directionsResponse && <DirectionsRenderer directions={directionsResponse} />}
-                        
-                        {/* Dibuja los marcadores de las paradas tácticas */}
                         {tacticalMarkers.map((marker, i) => (
-                            <Marker key={i} position={marker} label={{text: "P", color: "white"}} title={marker.title} />
+                            <Marker key={i} position={marker} label={{text: "P", color: "white", fontWeight: "bold"}} title={marker.title} />
                         ))}
                     </GoogleMap>
                 </div>
 
-                {/* Tabla de Itinerario */}
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm text-left text-gray-600">
-                        <thead className="bg-gray-200 text-gray-700 uppercase">
-                            <tr><th>Día</th><th>Fecha</th><th>Etapa</th><th>Distancia</th></tr>
+                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                    <table className="min-w-full text-sm text-left text-gray-700">
+                        <thead className="bg-blue-100 text-blue-800 uppercase font-bold">
+                            <tr>
+                                <th className="px-4 py-3">Día</th>
+                                <th className="px-4 py-3">Fecha</th>
+                                <th className="px-4 py-3">Ruta / Estancia</th>
+                                <th className="px-4 py-3">Distancia</th>
+                            </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-200">
                             {results.dailyItinerary?.map((day, i) => (
-                                <tr key={i} className={`border-b ${day.isDriving ? 'bg-white' : 'bg-yellow-50'}`}>
-                                    <td className="px-4 py-2 font-medium">{day.day}</td>
-                                    <td className="px-4 py-2">{day.date}</td>
-                                    <td className="px-4 py-2">
+                                <tr key={i} className={`hover:bg-gray-50 ${day.isDriving ? 'bg-white' : 'bg-yellow-50'}`}>
+                                    <td className="px-4 py-3 font-bold text-gray-900">{day.day}</td>
+                                    <td className="px-4 py-3 text-gray-600">{day.date}</td>
+                                    <td className="px-4 py-3">
                                         {day.isDriving ? 
-                                            <span>🚗 {day.from} ➝ <strong>{day.to}</strong></span> : 
-                                            <span>🏖️ Estancia en {day.to}</span>}
+                                            <span className="text-gray-800">🚗 {day.from} <span className="text-gray-400">➝</span> <strong>{day.to}</strong></span> : 
+                                            <span className="text-orange-600 italic">🏖️ Estancia en {day.to}</span>}
                                     </td>
-                                    <td className="px-4 py-2">{day.isDriving ? `${day.distance.toFixed(0)} km` : '-'}</td>
+                                    <td className="px-4 py-3 font-mono">{day.isDriving ? `${day.distance.toFixed(0)} km` : '-'}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -346,7 +352,7 @@ export default function Home() {
                 </div>
             </section>
         )}
-        {results.error && <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">{results.error}</div>}
+        {results.error && <div className="mt-4 p-4 bg-red-100 text-red-700 rounded font-bold">{results.error}</div>}
       </div>
     </main>
   );
