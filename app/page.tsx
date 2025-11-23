@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN FINAL Y BLINDADA CON EVITAR PEAJES)
+// app/page.tsx (VERSIÓN FINAL Y BLINDADA CON EVITAR PEAJES - SINTAXIS SIMPLIFICADA)
 'use client';
 
 import React, { useState } from 'react';
@@ -16,7 +16,7 @@ const LIBRARIES: ("places" | "geometry")[] = ["places", "geometry"];
 
 // --- INTERFACES y ICONOS (Omitidas para la plantilla, pero presentes en el código) ---
 interface DailyPlan { day: number; date: string; from: string; to: string; distance: number; isDriving: boolean; }
-interface TripResult { totalDays: number | null; distanceKm: number | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; }
+interface TripResult { totalDays: number | null; distanceKm: null | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; }
 
 const IconCalendar = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
 const IconMap = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>);
@@ -154,14 +154,21 @@ export default function Home() {
     setSelectedDayIndex(dayIndex); 
   };
   
-  // --- HANDLERS (MODIFICADO PARA MANEJAR CHECKBOX) ---
+  // --- HANDLERS (MODIFICADO PARA SIMPLIFICAR EL PARSING) ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
     
-    // 🛑 LÓGICA UNIFICADA: Si es checkbox, usamos 'checked'. Si es numérico, parseamos. Si es texto, usamos 'value'.
-    const finalValue = type === 'checkbox' ? checked : (
-        (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') ? parseFloat(value) : value
-    );
+    let finalValue: string | number | boolean;
+    
+    if (type === 'checkbox') {
+        finalValue = checked;
+    } else if (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') {
+        // Manejamos inputs numéricos que no son sliders
+        finalValue = parseFloat(value);
+    } else {
+        // Valores de texto
+        finalValue = value;
+    }
     
     setFormData(prev => ({ 
         ...prev, 
@@ -389,4 +396,161 @@ export default function Home() {
                     </div>
 
                     {/* Sliders de Control */}
-                    <div className="md:col-span-2 space-y-3"></div>
+                    <div className="md:col-span-2 space-y-3">
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-bold text-gray-700">🛣️ Ritmo de Viaje</label>
+                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">{formData.kmMaximoDia} km/día</span>
+                        </div>
+                        <input type="range" id="kmMaximoDia" min="100" max="1000" step="50" defaultValue={formData.kmMaximoDia} onChange={handleSliderChange} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"/>
+                        <div className="flex justify-between text-xs text-gray-400 font-medium"><span>Relax (100)</span><span>Express (1000)</span></div>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-3">
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-bold text-gray-700">⛽ Consumo Vehículo</label>
+                            <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-1 rounded">{formData.consumo} L/100</span>
+                        </div>
+                        <input type="range" id="consumo" min="5" max="25" step="0.5" defaultValue={formData.consumo} onChange={handleSliderChange} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"/>
+                         <div className="flex justify-between text-xs text-gray-400 font-medium"><span>Eficiente (5)</span><span>Pesado (25)</span></div>
+                    </div>
+                    
+                    {/* Precio Gasoil (1 Columna) */}
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Precio Gasoil (€)</label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">€</span>
+                            <input type="number" id="precioGasoil" value={formData.precioGasoil} onChange={handleChange} className="w-full pl-8 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-green-500 focus:bg-white transition" step="0.01"/>
+                        </div>
+                    </div>
+                    
+                    {/* Evitar Peajes (1 Columna, alineado con el precio) */}
+                    <div className="md:col-span-1 flex items-end">
+                        <label className="flex items-center gap-3 cursor-pointer text-gray-700 font-bold select-none text-sm p-3 bg-gray-50 border border-gray-200 rounded-lg w-full h-full">
+                            <input 
+                                type="checkbox" 
+                                id="evitarPeajes" 
+                                checked={formData.evitarPeajes} 
+                                onChange={handleChange} // Usamos el manejador unificado
+                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" 
+                            />
+                            Evitar Peajes 🚫
+                        </label>
+                    </div>
+
+                    {/* Botón Calcular (2 Columnas restantes) */}
+                     <div className="md:col-span-2 lg:col-span-2 flex items-end">
+                        <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-700 to-blue-600 text-white py-3.5 rounded-xl font-bold text-lg hover:from-blue-800 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                            {loading ? 'Calculando Ruta Óptima...' : '🚀 Calcular Itinerario'}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {/* SECCIÓN DE RESULTADOS (Resto sin cambios) */}
+        {results.totalCost !== null && (
+            <div className="space-y-8">
+                
+                {/* DASHBOARD DE DATOS */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-blue-50 rounded-full"><IconCalendar /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-gray-800">{results.totalDays}</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Días</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-blue-50 rounded-full"><IconMap /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-gray-800">{results.distanceKm?.toFixed(0)}</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Km Total</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-purple-50 rounded-full"><IconFuel /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-gray-800">{(results.distanceKm! / 100 * formData.consumo).toFixed(0)}</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Litros</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
+                        <div className="p-3 bg-green-50 rounded-full"><IconWallet /></div>
+                        <div>
+                            <p className="text-2xl font-extrabold text-green-600">{results.totalCost?.toFixed(0)} €</p>
+                            <p className="text-xs text-gray-500 font-bold uppercase">Coste Aprox.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* CONTENEDOR DE LA RUTA Y PESTAÑAS */}
+                <div className="space-y-6">
+    
+                    {/* 1. NAVEGADOR DE ETAPAS (PESTAÑAS) */}
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 overflow-x-auto">
+                        <h3 className="font-bold text-gray-700 mb-3">Selecciona una Etapa para Verla en Detalle:</h3>
+                        <div className="flex space-x-2 pb-2">
+                            
+                            {/* Opción 'Vista General' */}
+                            <button
+                                onClick={() => {
+                                    setSelectedDayIndex(null);
+                                    setMapBounds(null); 
+                                }}
+                                className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                                    selectedDayIndex === null 
+                                    ? 'bg-blue-600 text-white shadow-md' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
+                                }`}
+                            >
+                                🌎 Vista General
+                            </button>
+
+                            {/* Iteración de las Pestañas (Días) */}
+                            {results.dailyItinerary?.map((day, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => focusMapOnStage(index)} 
+                                    className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                                        selectedDayIndex === index 
+                                        ? (day.isDriving ? 'bg-blue-600 text-white shadow-md' : 'bg-orange-600 text-white shadow-md') 
+                                        : (day.isDriving ? 'bg-gray-100 text-gray-700 hover:bg-blue-50' : 'bg-orange-100 text-orange-700 hover:bg-orange-200')
+                                    }`}
+                                >
+                                    <span className="mr-1">{day.isDriving ? '🚗' : '🏖️'}</span> Día {day.day}: {day.to.replace('📍 Parada Táctica: ', '').split(',')[0]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 2. CONTENIDO DETALLADO (MAPA Y RESUMEN) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        {/* MAPA (Ocupa 2 columnas en pantallas grandes) */}
+                        <div className="lg:col-span-2 h-[500px] bg-gray-200 rounded-2xl shadow-lg overflow-hidden border-4 border-white relative">
+                            <GoogleMap 
+                                mapContainerStyle={containerStyle} 
+                                center={center} 
+                                zoom={6} 
+                                onLoad={map => {
+                                    setMap(map);
+                                    if (mapBounds) map.fitBounds(mapBounds);
+                                }}
+                            >
+                                {directionsResponse && <DirectionsRenderer directions={directionsResponse} options={{ 
+                                    strokeColor: "#2563EB", 
+                                    strokeWeight: 5 
+                                }} />}
+                                {tacticalMarkers.map((marker, i) => (
+                                    <Marker 
+                                        key={i} 
+                                        position={marker} 
+                                        label={{text: "P", color: "white", fontWeight: "bold"}} 
+                                        title={marker.title} 
+                                    />
+                                ))}
+                            </GoogleMap>
+                        </div>
+
+                        {/* RESUMEN DEL DÍA SELECCIONADO / GENERAL */}
+                        <div className="lg:
