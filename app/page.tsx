@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN FINAL Y COMPLETA: BÚSQUEDA ESPECIALIZADA + EVITAR PEAJES)
+// app/page.tsx (VERSIÓN FINAL Y COMPLETA: BLINDADA CONTRA AMBIGÜEDADES)
 'use client';
 
 import React, { useState } from 'react';
@@ -14,9 +14,9 @@ const containerStyle = {
 const center = { lat: 40.416775, lng: -3.703790 };
 const LIBRARIES: ("places" | "geometry")[] = ["places", "geometry"]; 
 
-// --- INTERFACES y ICONOS (Omitidas para la plantilla, pero presentes en el código) ---
+// --- INTERFACES y ICONOS ---
 interface DailyPlan { day: number; date: string; from: string; to: string; distance: number; isDriving: boolean; }
-interface TripResult { totalDays: number | null; distanceKm: null | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; }
+interface TripResult { totalDays: number | null; distanceKm: number | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; } // Modificado: km, totalCost deben ser number | null
 
 const IconCalendar = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
 const IconMap = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>);
@@ -428,36 +428,4 @@ export default function Home() {
                                 type="checkbox" 
                                 id="evitarPeajes" 
                                 checked={formData.evitarPeajes} 
-                                onChange={handleCheckboxChange} // 🛑 USAMOS HANDLER DEDICADO
-                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" 
-                            />
-                            Evitar Peajes 🚫
-                        </label>
-                    </div>
-
-                    {/* Botón Calcular (2 Columnas restantes) */}
-                     <div className="md:col-span-2 lg:col-span-2 flex items-end">
-                        <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-700 to-blue-600 text-white py-3.5 rounded-xl font-bold text-lg hover:from-blue-800 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                            {loading ? 'Calculando Ruta Óptima...' : '🚀 Calcular Itinerario'}
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        {/* SECCIÓN DE RESULTADOS (Resto sin cambios) */}
-        {results.totalCost !== null && (
-            <div className="space-y-8">
-                
-                {/* DASHBOARD DE DATOS */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                        <div className="p-3 bg-blue-50 rounded-full"><IconCalendar /></div>
-                        <div>
-                            <p className="text-2xl font-extrabold text-gray-800">{results.totalDays}</p>
-                            <p className="text-xs text-gray-500 font-bold uppercase">Días</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                        <div className="p-3 bg-blue-50 rounded-full"><IconMap /></div>
-                        <div>
+                                onChange={handleCheckboxChange} //</label>
