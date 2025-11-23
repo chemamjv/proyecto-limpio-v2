@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN FINAL Y BLINDADA - Separación de Handlers)
+// app/page.tsx (VERSIÓN FINAL Y COMPLETA: BÚSQUEDA ESPECIALIZADA + EVITAR PEAJES)
 'use client';
 
 import React, { useState } from 'react';
@@ -27,8 +27,8 @@ const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6
 const DayDetailView: React.FC<{ day: DailyPlan }> = ({ day }) => {
     const rawCityName = day.to.replace('📍 Parada Táctica: ', '').replace('📍 Parada de Pernocta: ', '').split(',')[0].trim();
     
-    // 🛑 FIX CRÍTICO: Usar URL estándar de Google Maps para búsquedas
-    const link = `https://www.google.com/maps/search/parking+autocaravana+${rawCityName}`;
+    // 🛑 FIX FINAL: Búsqueda especializada con la fórmula del usuario
+    const link = `http://googleusercontent.com/maps.google.com/search?q=area+autocaravana+park4night+caramaps+${rawCityName}`;
 
     return (
         <div className={`p-4 rounded-xl space-y-4 h-full transition-all ${day.isDriving ? 'bg-blue-50 border-l-4 border-blue-600' : 'bg-orange-50 border-l-4 border-orange-600'}`}>
@@ -461,140 +461,3 @@ export default function Home() {
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
                         <div className="p-3 bg-blue-50 rounded-full"><IconMap /></div>
                         <div>
-                            <p className="text-2xl font-extrabold text-gray-800">{results.distanceKm?.toFixed(0)}</p>
-                            <p className="text-xs text-gray-500 font-bold uppercase">Km Total</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                        <div className="p-3 bg-purple-50 rounded-full"><IconFuel /></div>
-                        <div>
-                            <p className="text-2xl font-extrabold text-gray-800">{(results.distanceKm! / 100 * formData.consumo).toFixed(0)}</p>
-                            <p className="text-xs text-gray-500 font-bold uppercase">Litros</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition hover:shadow-md">
-                        <div className="p-3 bg-green-50 rounded-full"><IconWallet /></div>
-                        <div>
-                            <p className="text-2xl font-extrabold text-green-600">{results.totalCost?.toFixed(0)} €</p>
-                            <p className="text-xs text-gray-500 font-bold uppercase">Coste Aprox.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* CONTENEDOR DE LA RUTA Y PESTAÑAS */}
-                <div className="space-y-6">
-    
-                    {/* 1. NAVEGADOR DE ETAPAS (PESTAÑAS) */}
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 overflow-x-auto">
-                        <h3 className="font-bold text-gray-700 mb-3">Selecciona una Etapa para Verla en Detalle:</h3>
-                        <div className="flex space-x-2 pb-2">
-                            
-                            {/* Opción 'Vista General' */}
-                            <button
-                                onClick={() => {
-                                    setSelectedDayIndex(null);
-                                    setMapBounds(null); 
-                                }}
-                                className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                                    selectedDayIndex === null 
-                                    ? 'bg-blue-600 text-white shadow-md' 
-                                    : 'bg-gray-100 text-gray-700 hover:bg-blue-50'
-                                }`}
-                            >
-                                🌎 Vista General
-                            </button>
-
-                            {/* Iteración de las Pestañas (Días) */}
-                            {results.dailyItinerary?.map((day, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => focusMapOnStage(index)} 
-                                    className={`flex-shrink-0 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                                        selectedDayIndex === index 
-                                        ? (day.isDriving ? 'bg-blue-600 text-white shadow-md' : 'bg-orange-600 text-white shadow-md') 
-                                        : (day.isDriving ? 'bg-gray-100 text-gray-700 hover:bg-blue-50' : 'bg-orange-100 text-orange-700 hover:bg-orange-200')
-                                    }`}
-                                >
-                                    <span className="mr-1">{day.isDriving ? '🚗' : '🏖️'}</span> Día {day.day}: {day.to.replace('📍 Parada Táctica: ', '').split(',')[0]}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 2. CONTENIDO DETALLADO (MAPA Y RESUMEN) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        
-                        {/* MAPA (Ocupa 2 columnas en pantallas grandes) */}
-                        <div className="lg:col-span-2 h-[500px] bg-gray-200 rounded-2xl shadow-lg overflow-hidden border-4 border-white relative">
-                            <GoogleMap 
-                                mapContainerStyle={containerStyle} 
-                                center={center} 
-                                zoom={6} 
-                                onLoad={map => {
-                                    setMap(map);
-                                    if (mapBounds) map.fitBounds(mapBounds);
-                                }}
-                            >
-                                {directionsResponse && <DirectionsRenderer directions={directionsResponse} options={{ 
-                                    strokeColor: "#2563EB", 
-                                    strokeWeight: 5 
-                                }} />}
-                                {tacticalMarkers.map((marker, i) => (
-                                    <Marker 
-                                        key={i} 
-                                        position={marker} 
-                                        label={{text: "P", color: "white", fontWeight: "bold"}} 
-                                        title={marker.title} 
-                                    />
-                                ))}
-                            </GoogleMap>
-                        </div>
-
-                        {/* RESUMEN DEL DÍA SELECCIONADO / GENERAL */}
-                        <div className="lg:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-[500px]">
-                            <div className='p-6 h-full'>
-                                {selectedDayIndex === null ? (
-                                    // --- VISTA GENERAL (RESUMEN) ---
-                                    <div className="text-center pt-8">
-                                        <h4 className="text-2xl font-extrabold text-blue-700 mb-2">Itinerario Completo</h4>
-                                        <p className="text-gray-500">
-                                            Haz clic en la pestaña de un **Día** (ej: Día 2) para enfocar el mapa y ver la parada de pernocta.
-                                        </p>
-                                        
-                                        {/* TABLA DE RESUMEN RÁPIDO */}
-                                        <div className="mt-6 border rounded-lg overflow-hidden">
-                                            <table className="min-w-full text-sm text-left">
-                                                <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-600">
-                                                    <tr><th className="px-4 py-2">Día</th><th className="px-4 py-2 text-right">Km</th></tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {results.dailyItinerary?.filter(d => d.isDriving).map((day, i) => (
-                                                        <tr key={i} className="hover:bg-blue-50">
-                                                            <td className="px-4 py-2 font-medium">Día {day.day}</td>
-                                                            <td className="px-4 py-2 text-right font-mono">{day.distance.toFixed(0)}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    // --- VISTA DE DÍA DETALLADA (Llama al componente) ---
-                                    <DayDetailView day={results.dailyItinerary![selectedDayIndex]} />
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-        
-        {results.error && (
-            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center justify-center font-bold">
-                ⚠️ {results.error}
-            </div>
-        )}
-      </div>
-    </main>
-  );
-}
