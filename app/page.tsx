@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN VISUAL: CAMPER PRO UI/UX)
+// app/page.tsx (CORRECCIÓN CSS COMPATIBLE)
 'use client';
 
 import React, { useState } from 'react';
@@ -8,7 +8,7 @@ import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from '@react-go
 const containerStyle = {
   width: '100%',
   height: '100%',
-  borderRadius: '1rem' // Bordes más redondeados para el mapa
+  borderRadius: '1rem'
 };
 
 const center = { lat: 40.416775, lng: -3.703790 };
@@ -32,7 +32,7 @@ interface TripResult {
   error: string | null;
 }
 
-// --- ICONOS SVG (COMPONENTES VISUALES) ---
+// --- ICONOS SVG ---
 const IconCalendar = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
 );
@@ -85,7 +85,7 @@ export default function Home() {
     setFormData(prev => ({ ...prev, [e.target.id]: parseFloat(e.target.value) }));
   };
 
-  // --- LÓGICA GEOCODING Y CÁLCULO (INTACTA) ---
+  // --- LÓGICA GEOCODING Y CÁLCULO ---
   const getCityName = async (lat: number, lng: number): Promise<string> => {
     const geocoder = new google.maps.Geocoder();
     try {
@@ -316,7 +316,7 @@ export default function Home() {
 
         {/* SECCIÓN DE RESULTADOS */}
         {results.totalCost !== null && (
-            <div className="space-y-8 animate-fade-in-up">
+            <div className="space-y-8">
                 
                 {/* DASHBOARD DE DATOS */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -377,3 +377,40 @@ export default function Home() {
                                                 <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs shadow-sm ${day.isDriving ? 'bg-blue-600 text-white' : 'bg-orange-400 text-white'}`}>
                                                     {day.day}
                                                 </div>
+                                            </td>
+                                            <td className="px-2 py-4 align-top">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">{day.date}</span>
+                                                    {day.isDriving ? (
+                                                        <>
+                                                            <div className="font-semibold text-gray-800">{day.from}</div>
+                                                            <div className="text-gray-400 text-xs pl-1 border-l-2 border-gray-200 my-1">⬇ {day.distance.toFixed(0)} km</div>
+                                                            <div className="font-bold text-blue-700">{day.to}</div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="font-bold text-orange-700 flex items-center gap-2">
+                                                            <span>🏖️</span> Estancia en {day.to}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        )}
+        
+        {results.error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center justify-center font-bold animate-bounce">
+                ⚠️ {results.error}
+            </div>
+        )}
+      </div>
+    </main>
+  );
+}
