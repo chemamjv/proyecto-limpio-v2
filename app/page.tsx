@@ -26,7 +26,9 @@ const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6
 // --- COMPONENTE DE VISTA DETALLADA DEL DÍA ---
 const DayDetailView: React.FC<{ day: DailyPlan }> = ({ day }) => {
     const rawCityName = day.to.replace('📍 Parada Táctica: ', '').replace('📍 Parada de Pernocta: ', '').split(',')[0].trim();
-    const link = `http://googleusercontent.com/maps.google.com/search?q=parking+autocaravana+${rawCityName}`;
+    
+    // 🛑 FIX CRÍTICO: Usar URL estándar de Google Maps para búsquedas
+    const link = `https://www.google.com/maps/search/parking+autocaravana+${rawCityName}`;
 
     return (
         <div className={`p-4 rounded-xl space-y-4 h-full transition-all ${day.isDriving ? 'bg-blue-50 border-l-4 border-blue-600' : 'bg-orange-50 border-l-4 border-orange-600'}`}>
@@ -92,7 +94,7 @@ export default function Home() {
     consumo: 9.0,
     precioGasoil: 1.75,
     kmMaximoDia: 400,
-    evitarPeajes: false, // 🛑 NUEVO ESTADO PARA PEAJES
+    evitarPeajes: false, // 🛑 ESTADO PARA PEAJES
   });
 
   const [results, setResults] = useState<TripResult>({
@@ -256,7 +258,7 @@ export default function Home() {
 
             if (legAccumulator + segmentDist > maxMeters) {
                 const lat = point1.lat();
-                const lng = point2.lng(); // Usar el punto de la siguiente coordenada
+                const lng = point2.lng(); 
                 const cityName = await getCityNameForStop(lat, lng);
                 const stopTitle = `📍 Parada Táctica: ${cityName}`;
 
@@ -383,7 +385,7 @@ export default function Home() {
                     {/* Waypoints */}
                     <div className="md:col-span-2 lg:col-span-4 bg-blue-50 p-4 rounded-xl border border-blue-100">
                         <label className="flex items-center gap-3 cursor-pointer text-blue-800 font-bold text-sm mb-2 select-none">
-                            <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={showWaypoints} onChange={() => setFormData(prev => ({ ...prev, showWaypoints: !prev.showWaypoints }))} /> 
+                            <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={showWaypoints} onChange={() => setShowWaypoints(!showWaypoints)} /> 
                             ➕ Añadir Paradas Intermedias
                         </label>
                         {showWaypoints && (
