@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN FINAL CON EVITAR PEAJES)
+// app/page.tsx (VERSIÓN FINAL Y BLINDADA CON EVITAR PEAJES)
 'use client';
 
 import React, { useState } from 'react';
@@ -14,29 +14,19 @@ const containerStyle = {
 const center = { lat: 40.416775, lng: -3.703790 };
 const LIBRARIES: ("places" | "geometry")[] = ["places", "geometry"]; 
 
-// --- INTERFACES y ICONOS ---
+// --- INTERFACES y ICONOS (Omitidas para la plantilla, pero presentes en el código) ---
 interface DailyPlan { day: number; date: string; from: string; to: string; distance: number; isDriving: boolean; }
 interface TripResult { totalDays: number | null; distanceKm: number | null; totalCost: number | null; dailyItinerary: DailyPlan[] | null; error: string | null; }
 
-const IconCalendar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-);
-const IconMap = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>
-);
-const IconFuel = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-);
-const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-);
+const IconCalendar = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
+const IconMap = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>);
+const IconFuel = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>);
+const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>);
 
 // --- COMPONENTE DE VISTA DETALLADA DEL DÍA ---
 const DayDetailView: React.FC<{ day: DailyPlan }> = ({ day }) => {
-    // Limpiamos el nombre de la ciudad
     const rawCityName = day.to.replace('📍 Parada Táctica: ', '').replace('📍 Parada de Pernocta: ', '').split(',')[0].trim();
-    
-    // URL Corregida para búsqueda de Google Maps
-    const link = `http://www.google.com/maps/search/?api=1&query=parking+autocaravana+${rawCityName}`;
+    const link = `http://googleusercontent.com/maps.google.com/search?q=parking+autocaravana+${rawCityName}`;
 
     return (
         <div className={`p-4 rounded-xl space-y-4 h-full transition-all ${day.isDriving ? 'bg-blue-50 border-l-4 border-blue-600' : 'bg-orange-50 border-l-4 border-orange-600'}`}>
@@ -53,7 +43,6 @@ const DayDetailView: React.FC<{ day: DailyPlan }> = ({ day }) => {
                 </p>
             )}
 
-            {/* Mostrar pernocta si hay conducción y distancia > 0 */}
             {day.isDriving && day.distance > 0 && (
                 <div className="pt-3 border-t border-dashed border-gray-300">
                     <h5 className="text-sm font-bold text-gray-600 mb-2 flex items-center gap-1">
@@ -165,12 +154,18 @@ export default function Home() {
     setSelectedDayIndex(dayIndex); 
   };
   
-  // --- HANDLERS ---
+  // --- HANDLERS (MODIFICADO PARA MANEJAR CHECKBOX) ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
+    const { id, value, type, checked } = e.target;
+    
+    // 🛑 LÓGICA UNIFICADA: Si es checkbox, usamos 'checked'. Si es numérico, parseamos. Si es texto, usamos 'value'.
+    const finalValue = type === 'checkbox' ? checked : (
+        (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') ? parseFloat(value) : value
+    );
+    
     setFormData(prev => ({ 
         ...prev, 
-        [id]: (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') ? parseFloat(value) : value 
+        [id]: finalValue
     }));
   };
 
@@ -394,10 +389,4 @@ export default function Home() {
                     </div>
 
                     {/* Sliders de Control */}
-                    <div className="md:col-span-2 space-y-3">
-                        <div className="flex justify-between items-center">
-                            <label className="text-sm font-bold text-gray-700">🛣️ Ritmo de Viaje</label>
-                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">{formData.kmMaximoDia} km/día</span>
-                        </div>
-                        <input type="range" id="kmMaximoDia" min="100" max="1000" step="50" defaultValue={formData.kmMaximoDia} onChange={handleSliderChange} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"/>
-                        <div className="flex justify-between text-xs text-gray-400 font
+                    <div className="md:col-span-2 space-y-3"></div>
