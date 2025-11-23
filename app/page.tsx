@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN FINAL Y BLINDADA CON EVITAR PEAJES - SINTAXIS SIMPLIFICADA)
+// app/page.tsx (VERSIÓN FINAL Y BLINDADA - Separación de Handlers)
 'use client';
 
 import React, { useState } from 'react';
@@ -154,30 +154,26 @@ export default function Home() {
     setSelectedDayIndex(dayIndex); 
   };
   
-  // --- HANDLERS (MODIFICADO PARA SIMPLIFICAR EL PARSING) ---
+  // 🛑 HANDLER 1: Para Inputs de Texto y Número
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value, type, checked } = e.target;
-    
-    let finalValue: string | number | boolean;
-    
-    if (type === 'checkbox') {
-        finalValue = checked;
-    } else if (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') {
-        // Manejamos inputs numéricos que no son sliders
-        finalValue = parseFloat(value);
-    } else {
-        // Valores de texto
-        finalValue = value;
-    }
+    const { id, value } = e.target;
     
     setFormData(prev => ({ 
         ...prev, 
-        [id]: finalValue
+        [id]: (id === 'precioGasoil' || id === 'consumo' || id === 'kmMaximoDia') ? parseFloat(value) : value
     }));
   };
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.id]: parseFloat(e.target.value) }));
+  };
+
+  // 🛑 HANDLER 2: Función dedicada SÓLO para el Checkbox
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData(prev => ({ 
+          ...prev, 
+          evitarPeajes: e.target.checked 
+      }));
   };
   
   // --- LÓGICA GEOCODING Y CÁLCULO ---
@@ -260,7 +256,7 @@ export default function Home() {
 
             if (legAccumulator + segmentDist > maxMeters) {
                 const lat = point1.lat();
-                const lng = point1.lng();
+                const lng = point2.lng(); // Usar el punto de la siguiente coordenada
                 const cityName = await getCityNameForStop(lat, lng);
                 const stopTitle = `📍 Parada Táctica: ${cityName}`;
 
@@ -387,7 +383,7 @@ export default function Home() {
                     {/* Waypoints */}
                     <div className="md:col-span-2 lg:col-span-4 bg-blue-50 p-4 rounded-xl border border-blue-100">
                         <label className="flex items-center gap-3 cursor-pointer text-blue-800 font-bold text-sm mb-2 select-none">
-                            <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={showWaypoints} onChange={() => setShowWaypoints(!showWaypoints)} /> 
+                            <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={showWaypoints} onChange={() => setFormData(prev => ({ ...prev, showWaypoints: !prev.showWaypoints }))} /> 
                             ➕ Añadir Paradas Intermedias
                         </label>
                         {showWaypoints && (
@@ -430,7 +426,7 @@ export default function Home() {
                                 type="checkbox" 
                                 id="evitarPeajes" 
                                 checked={formData.evitarPeajes} 
-                                onChange={handleChange} // Usamos el manejador unificado
+                                onChange={handleCheckboxChange} // 🛑 USAMOS HANDLER DEDICADO
                                 className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" 
                             />
                             Evitar Peajes 🚫
@@ -553,4 +549,50 @@ export default function Home() {
                         </div>
 
                         {/* RESUMEN DEL DÍA SELECCIONADO / GENERAL */}
-                        <div className="lg:
+                        <div className="lg:col-span-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-[500px]">
+                            <div className='p-6 h-full'>
+                                {selectedDayIndex === null ? (
+                                    // --- VISTA GENERAL (RESUMEN) ---
+                                    <div className="text-center pt-8">
+                                        <h4 className="text-2xl font-extrabold text-blue-700 mb-2">Itinerario Completo</h4>
+                                        <p className="text-gray-500">
+                                            Haz clic en la pestaña de un **Día** (ej: Día 2) para enfocar el mapa y ver la parada de pernocta.
+                                        </p>
+                                        
+                                        {/* TABLA DE RESUMEN RÁPIDO */}
+                                        <div className="mt-6 border rounded-lg overflow-hidden">
+                                            <table className="min-w-full text-sm text-left">
+                                                <thead className="bg-gray-50 text-xs font-bold uppercase text-gray-600">
+                                                    <tr><th className="px-4 py-2">Día</th><th className="px-4 py-2 text-right">Km</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {results.dailyItinerary?.filter(d => d.isDriving).map((day, i) => (
+                                                        <tr key={i} className="hover:bg-blue-50">
+                                                            <td className="px-4 py-2 font-medium">Día {day.day}</td>
+                                                            <td className="px-4 py-2 text-right font-mono">{day.distance.toFixed(0)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // --- VISTA DE DÍA DETALLADA (Llama al componente) ---
+                                    <DayDetailView day={results.dailyItinerary![selectedDayIndex]} />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+        
+        {results.error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 flex items-center justify-center font-bold">
+                ⚠️ {results.error}
+            </div>
+        )}
+      </div>
+    </main>
+  );
+}
