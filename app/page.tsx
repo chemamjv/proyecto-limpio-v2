@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN DEFINITIVA: Handlers Unificados + Búsqueda Inteligente URL ABSOLUTA)
+// app/page.tsx (VERSIÓN FINAL Y COMPLETA: BÚSQUEDA SITE: Y URL ABSOLUTA)
 'use client';
 
 import React, { useState } from 'react';
@@ -27,8 +27,8 @@ const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6
 const DayDetailView: React.FC<{ day: DailyPlan }> = ({ day }) => {
     const rawCityName = day.to.replace('📍 Parada Táctica: ', '').replace('📍 Parada de Pernocta: ', '').split(',')[0].trim();
     
-    // 🛑 FIX DEFINITIVO: URL ABSOLUTA COMPLETA DE GOOGLE SEARCH
-    const link = `https://www.google.com/search?q=area+autocaravana+park4night+caramaps+${rawCityName}`;
+    // 🛑 FIX DEFINITIVO: Búsqueda forzada con SITE: y URL ABSOLUTA
+    const link = `https://www.google.com/search?q=site:park4night.com OR site:caramaps.com "área autocaravana" ${rawCityName}`;
 
     return (
         <div className={`p-4 rounded-xl space-y-4 h-full transition-all ${day.isDriving ? 'bg-blue-50 border-l-4 border-blue-600' : 'bg-orange-50 border-l-4 border-orange-600'}`}>
