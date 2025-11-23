@@ -1,4 +1,4 @@
-// app/page.tsx (VERSIÓN DEFINITIVA: Handlers Unificados + Búsqueda Inteligente)
+// app/page.tsx (VERSIÓN DEFINITIVA: Handlers Unificados + Búsqueda Inteligente URL ABSOLUTA)
 'use client';
 
 import React, { useState } from 'react';
@@ -27,8 +27,8 @@ const IconWallet = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-6
 const DayDetailView: React.FC<{ day: DailyPlan }> = ({ day }) => {
     const rawCityName = day.to.replace('📍 Parada Táctica: ', '').replace('📍 Parada de Pernocta: ', '').split(',')[0].trim();
     
-    // 🛑 Búsqueda especializada de Park4Night/Caramaps
-    const link = `http://googleusercontent.com/maps.google.com/search?q=area+autocaravana+park4night+caramaps+${rawCityName}`;
+    // 🛑 FIX DEFINITIVO: URL ABSOLUTA COMPLETA DE GOOGLE SEARCH
+    const link = `https://www.google.com/search?q=area+autocaravana+park4night+caramaps+${rawCityName}`;
 
     return (
         <div className={`p-4 rounded-xl space-y-4 h-full transition-all ${day.isDriving ? 'bg-blue-50 border-l-4 border-blue-600' : 'bg-orange-50 border-l-4 border-orange-600'}`}>
@@ -156,7 +156,7 @@ export default function Home() {
     setSelectedDayIndex(dayIndex); 
   };
   
-  // 🛑 HANDLER UNIFICADO (FIXED)
+  // 🛑 HANDLER UNIFICADO
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
     
@@ -194,7 +194,7 @@ export default function Home() {
         const city = addressComp.find(c => c.types.includes("locality"))?.long_name 
                   || addressComp.find(c => c.types.includes("administrative_area_level_2"))?.long_name
                   || addressComp.find(c => c.types.includes("sublocality"))?.long_name;
-        return city ? city.replace(/\d+/, '').trim() : "Punto en Ruta";
+        return city ? city.replace(/\d{5}/, '').trim() : "Punto en Ruta";
       }
     } catch (e) { console.error("Error geocoding", e); }
     return "Parada en Ruta";
